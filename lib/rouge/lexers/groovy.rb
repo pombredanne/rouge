@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Groovy < RegexLexer
+      title "Groovy"
       desc 'The Groovy programming language (groovy.codehaus.org)'
       tag 'groovy'
       filenames '*.groovy'
@@ -47,7 +50,7 @@ module Rouge
 
         # whitespace
         rule /[^\S\n]+/, Text
-        rule %r(//.*?\n), Comment::Single
+        rule %r(//.*?$), Comment::Single
         rule %r(/[*].*?[*]/)m, Comment::Multiline
         rule /@\w[\w\d.]*/, Name::Decorator
         rule /(class|interface)\b/,  Keyword::Declaration, :class
@@ -60,8 +63,7 @@ module Rouge
         rule %r(/(\\\\|\\"|[^/])*/), Str
         rule /'\\.'|'[^\\]'|'\\u[0-9a-f]{4}'/, Str::Char
         rule /(\.)([a-zA-Z_][a-zA-Z0-9_]*)/ do
-          group Operator
-          group Name::Attribute
+          groups Operator, Name::Attribute
         end
 
         rule /[a-zA-Z_][a-zA-Z0-9_]*:/, Name::Label

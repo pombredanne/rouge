@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class VimL < RegexLexer
+      title "VimL"
       desc "VimL, the scripting language for the Vim editor (vim.org)"
       tag 'viml'
       aliases 'vim', 'vimscript', 'ex'
@@ -16,7 +19,7 @@ module Rouge
 
       state :root do
         rule /^(\s*)(".*?)$/ do
-          group Text; group Comment
+          groups Text, Comment
         end
 
         rule /^\s*\\/, Str::Escape

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 describe Rouge::Lexers::Rust do
   let(:subject) { Rouge::Lexers::Rust.new }
 
@@ -6,7 +8,6 @@ describe Rouge::Lexers::Rust do
 
     it 'guesses by filename' do
       assert_guess :filename => 'foo.rs'
-      assert_guess :filename => 'foo.rc'
     end
 
     it 'guesses by mimetype' do

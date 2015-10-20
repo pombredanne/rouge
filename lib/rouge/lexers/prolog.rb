@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Prolog < RegexLexer
+      title "Prolog"
       desc "The Prolog programming language (http://en.wikipedia.org/wiki/Prolog)"
       tag 'prolog'
       aliases 'prolog'
@@ -27,7 +30,7 @@ module Rouge
       end
 
       state :atoms do
-        rule /[[:lower:]]([_[:lower:][:digit:]])*/, Str::Symbol
+        rule /[[:lower:]]([_[:word:][:digit:]])*/, Str::Symbol
         rule /'[^']*'/, Str::Symbol
       end
 

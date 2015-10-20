@@ -1,12 +1,15 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Ruby < RegexLexer
+      title "Ruby"
       desc "The Ruby programming language (ruby-lang.org)"
       tag 'ruby'
       aliases 'rb'
-      filenames '*.rb', '*.ruby', '*.rbw', '*.rake', '*.gemspec',
-                'Rakefile', 'Guardfile', 'Gemfile', 'Capfile',
-                'Vagrantfile', '*.ru', '*.prawn'
+      filenames '*.rb', '*.ruby', '*.rbw', '*.rake', '*.gemspec', '*.podspec',
+                'Rakefile', 'Guardfile', 'Gemfile', 'Capfile', 'Podfile',
+                'Vagrantfile', '*.ru', '*.prawn', 'Berksfile'
 
       mimetypes 'text/x-ruby', 'application/x-ruby'
 
@@ -14,7 +17,7 @@ module Rouge
         return 1 if text.shebang? 'ruby'
       end
 
-      state :strings do
+      state :symbols do
         # symbols
         rule %r(
           :  # initial :
@@ -27,13 +30,11 @@ module Rouge
           Str::Symbol
 
         rule /:'(\\\\|\\'|[^'])*'/, Str::Symbol
-        rule /\b[a-z_]\w*?:\s+/, Str::Symbol
-        rule /'(\\\\|\\'|[^'])*'/, Str::Single
         rule /:"/, Str::Symbol, :simple_sym
-        rule /"/, Str::Double, :simple_string
-        rule /(?<!\.)`/, Str::Backtick, :simple_backtick
+      end
 
-        # %-style delimiters
+      state :sigil_strings do
+        # %-sigiled strings
         # %(abc), %[abc], %<abc>, %.abc., %r.abc., etc
         delimiter_map = { '{' => '}', '[' => ']', '(' => ')', '<' => '>' }
         rule /%([rqswQWxiI])?([^\w\s])/ do |m|
@@ -42,8 +43,8 @@ module Rouge
           interp = /[rQWxI]/ === m[1]
           toktype = Str::Other
 
-          debug { "    open: #{open.inspect}" }
-          debug { "    close: #{close.inspect}" }
+          puts "    open: #{open.inspect}" if @debug
+          puts "    close: #{close.inspect}" if @debug
 
           # regexes
           if m[1] == 'r'
@@ -76,6 +77,14 @@ module Rouge
         end
       end
 
+      state :strings do
+        mixin :symbols
+        rule /\b[a-z_]\w*?:\s+/, Str::Symbol, :expr_start
+        rule /'(\\\\|\\'|[^'])*'/, Str::Single
+        rule /"/, Str::Double, :simple_string
+        rule /(?<!\.)`/, Str::Backtick, :simple_backtick
+      end
+
       state :regex_flags do
         rule /[mixounse]*/, Str::Regex, :pop!
       end
@@ -100,27 +109,26 @@ module Rouge
 
       keywords_pseudo = %w(
         initialize new loop include extend raise attr_reader attr_writer
-        attr_accessor attr catch throw private module_function public
-        protected true false nil __FILE__ __LINE__
+        attr_accessor alias_method attr catch throw private module_function
+        public protected true false nil __FILE__ __LINE__
       )
 
       builtins_g = %w(
-        Array Float Integer Str __id__ __send__ abort ancestors
-        at_exit autoload binding callcc caller catch chomp chop
-        class_eval class_variables clone const_defined\? const_get
-        const_missing const_set constants display dup eval exec exit
-        extend fail fork format freeze getc gets global_variables gsub
-        hash id included_modules inspect instance_eval instance_method
-        instance_methods instance_variable_get instance_variable_set
-        instance_variables lambda load local_variables loop method
-        method_missing methods module_eval name object_id open p
-        print printf private_class_method private_instance_methods
-        private_methods proc protected_instance_methods protected_methods
-        public_class_method public_instance_methods public_methods putc
-        puts raise rand readline readlines require scan select self send
-        set_trace_func singleton_methods sleep split sprintf srand sub
-        syscall system taint test throw to_a to_s trace_var trap untaint
-        untrace_var warn
+        __id__ __send__ abort ancestors at_exit autoload binding callcc
+        caller catch chomp chop class_eval class_variables clone
+        const_defined\? const_get const_missing const_set constants
+        display dup eval exec exit extend fail fork format freeze
+        getc gets global_variables gsub hash id included_modules
+        inspect instance_eval instance_method instance_methods
+        instance_variable_get instance_variable_set instance_variables
+        lambda load local_variables loop method method_missing
+        methods module_eval name object_id open p print printf
+        private_class_method private_instance_methods private_methods proc
+        protected_instance_methods protected_methods public_class_method
+        public_instance_methods public_methods putc puts raise rand
+        readline readlines require require_relative scan select self send set_trace_func
+        singleton_methods sleep split sprintf srand sub syscall system
+        taint test throw to_a to_s trace_var trap untaint untrace_var warn
       )
 
       builtins_q = %w(
@@ -137,14 +145,40 @@ module Rouge
         @heredoc_queue = []
       end
 
-      state :root do
+      state :whitespace do
+        mixin :inline_whitespace
         rule /\n\s*/m, Text, :expr_start
-        rule /\s+/, Text # NB: NOT /m
         rule /#.*$/, Comment::Single
 
         rule %r(=begin\b.*?end\b)m, Comment::Multiline
+      end
+
+      state :inline_whitespace do
+        rule /[ \t\r]+/, Text
+      end
+
+      state :root do
+        mixin :whitespace
+        rule /__END__/, Comment::Preproc, :end_part
+
+        rule /0_?[0-7]+(?:_[0-7]+)*/, Num::Oct
+        rule /0x[0-9A-Fa-f]+(?:_[0-9A-Fa-f]+)*/, Num::Hex
+        rule /0b[01]+(?:_[01]+)*/, Num::Bin
+        rule /[\d]+(?:_\d+)*/, Num::Integer
+
+        # names
+        rule /@@[a-z_]\w*/i, Name::Variable::Class
+        rule /@[a-z_]\w*/i, Name::Variable::Instance
+        rule /\$\w+/, Name::Variable::Global
+        rule %r(\$[!@&`'+~=/\\,;.<>_*\$?:"]), Name::Variable::Global
+        rule /\$-[0adFiIlpvw]/, Name::Variable::Global
+        rule /::/, Operator
+
+        mixin :strings
+
         rule /(?:#{keywords.join('|')})\b/, Keyword, :expr_start
         rule /(?:#{keywords_pseudo.join('|')})\b/, Keyword::Pseudo, :expr_start
+
         rule %r(
           (module)
           (\s+)
@@ -163,51 +197,34 @@ module Rouge
           push :classname
         end
 
-        rule /(?:#{builtins_q.join('|')})\?/, Name::Builtin, :expr_start
+        rule /(?:#{builtins_q.join('|')})[?]/, Name::Builtin, :expr_start
         rule /(?:#{builtins_b.join('|')})!/,  Name::Builtin, :expr_start
         rule /(?<!\.)(?:#{builtins_g.join('|')})\b/,
           Name::Builtin, :method_call
 
-        rule /__END__/, Comment::Preproc, :end_part
-
-        rule /0_?[0-7]+(?:_[0-7]+)*/, Num::Oct
-        rule /0x[0-9A-Fa-f]+(?:_[0-9A-Fa-f]+)*/, Num::Hex
-        rule /0b[01]+(?:_[01]+)*/, Num::Bin
-        rule /[\d]+(?:_\d+)*/, Num::Integer
-
-        # names
-        rule /@@[a-z_]\w*/i, Name::Variable::Class
-        rule /@[a-z_]\w*/i, Name::Variable::Instance
-        rule /\$\w+/, Name::Variable::Global
-        rule %r(\$[!@&`'+~=/\\,;.<>_*\$?:"]), Name::Variable::Global
-        rule /\$-[0adFiIlpvw]/, Name::Variable::Global
-        rule /::/, Operator
-
-        mixin :strings
-
         # char operator.  ?x evaulates to "x", unless there's a digit
         # beforehand like x>=0?n[x]:""
         rule %r(
-          \?(\\[MC]-)*     # modifiers
+          [?](\\[MC]-)*     # modifiers
           (\\([\\abefnrstv\#"']|x[a-fA-F0-9]{1,2}|[0-7]{1,3})|\S)
           (?!\w)
         )x, Str::Char
 
         mixin :has_heredocs
 
-        rule /[A-Z][a-zA-Z0-9_]+/, Name::Constant, :method_call
-        rule /(\.|::)([a-z_]\w*[!?]?|[*%&^`~+-\/\[<>=])/ do
-          groups Punctuation, Name::Function
-          push :expr_start
+        rule /[A-Z][a-zA-Z0-9_]*/, Name::Constant, :method_call
+        rule /(\.|::)(\s*)([a-z_]\w*[!?]?|[*%&^`~+-\/\[<>=])/ do
+          groups Punctuation, Text, Name::Function
+          push :method_call
         end
 
         rule /[a-zA-Z_]\w*[?!]/, Name, :expr_start
         rule /[a-zA-Z_]\w*/, Name, :method_call
-        rule /\[|\]|\*\*|<<?|>>?|>=|<=|<=>|=~|={3}|!~|&&?|\|\||\.{1,3}/,
+        rule /\*\*|<<?|>>?|>=|<=|<=>|=~|={3}|!~|&&?|\|\||\.{1,3}/,
           Operator, :expr_start
         rule /[-+\/*%=<>&!^|~]=?/, Operator, :expr_start
-        rule %r<[({,?:\\;/]>, Punctuation, :expr_start
-        rule %r<[)}]>, Punctuation
+        rule %r<[\[({,?:\\;/]>, Punctuation, :expr_start
+        rule %r<[\])}]>, Punctuation
       end
 
       state :has_heredocs do
@@ -241,17 +258,17 @@ module Rouge
           tolerant, heredoc_name = @heredoc_queue.first
           check = tolerant ? m[2].strip : m[2].rstrip
 
-          group Str::Heredoc
-
           # check if we found the end of the heredoc
-          if check == heredoc_name
-            group Name::Constant
+          line_tok = if check == heredoc_name
             @heredoc_queue.shift
             # if there's no more, we're done looking.
             pop! if @heredoc_queue.empty?
+            Name::Constant
           else
-            group Str::Heredoc
+            Str::Heredoc
           end
+
+          groups(Str::Heredoc, line_tok)
         end
 
         rule /[#\\\n]/, Str::Heredoc
@@ -269,7 +286,7 @@ module Rouge
             <<? | >>? | <=>? | >= | ===?
           )
         )x do |m|
-          debug { "matches: #{[m[0], m[1], m[2], m[3]].inspect}" }
+          puts "matches: #{[m[0], m[1], m[2], m[3]].inspect}" if @debug
           groups Name::Class, Operator, Name::Function
           pop!
         end
@@ -279,10 +296,18 @@ module Rouge
 
       state :classname do
         rule /\s+/, Text
-        rule /\(/, Punctuation, :defexpr
+        rule /\(/ do
+          token Punctuation
+          push :defexpr
+          push :expr_start
+        end
 
         # class << expr
-        rule /<</, Operator, :pop!
+        rule /<</ do
+          token Operator
+          goto :expr_start
+        end
+
         rule /[A-Z_]\w*/, Name::Class
 
         rule(//) { pop! }
@@ -293,7 +318,12 @@ module Rouge
           groups Punctuation, Operator
           pop!
         end
-        rule /\(/, Punctuation, :defexpr
+        rule /\(/ do
+          token Punctuation
+          push :defexpr
+          push :expr_start
+        end
+
         mixin :root
       end
 
@@ -303,7 +333,7 @@ module Rouge
       end
 
       state :string_intp do
-        rule /\#{/, Str::Interpol, :in_interp
+        rule /[#][{]/, Str::Interpol, :in_interp
         rule /#(@@?|\$)[a-z_]\w*/i, Str::Interpol
       end
 
@@ -315,19 +345,40 @@ module Rouge
       end
 
       state :method_call do
-        rule %r((\s+)(/)(?=\S|\s*/)) do
-          groups Text, Str::Regex
+        rule %r(/) do
+          token Operator
+          goto :expr_start
+        end
+
+        rule(//) { goto :method_call_spaced }
+      end
+
+      state :method_call_spaced do
+        mixin :whitespace
+
+        rule %r([%/]=) do
+          token Operator
+          goto :expr_start
+        end
+
+        rule %r((/)(?=\S|\s*/)) do
+          token Str::Regex
           goto :slash_regex
         end
 
+        mixin :sigil_strings
+
         rule(%r((?=\s*/))) { pop! }
 
-        rule(//) { goto :expr_start }
+        rule(/\s+/) { token Text; goto :expr_start }
+        rule(//) { pop! }
       end
 
       state :expr_start do
-        rule %r((\s*)(/)) do
-          groups Text, Str::Regex
+        mixin :inline_whitespace
+
+        rule %r(/) do
+          token Str::Regex
           goto :slash_regex
         end
 
@@ -337,6 +388,8 @@ module Rouge
           groups Text, Str::Other
           pop!
         end
+
+        mixin :sigil_strings
 
         rule(//) { pop! }
       end

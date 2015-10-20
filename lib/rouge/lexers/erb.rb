@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class ERB < TemplateLexer
+      title "ERB"
       desc "Embedded ruby template files"
 
       tag 'erb'

@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
-    Lexer.load_const :SassCommon, 'sass/common.rb'
+    load_lexer 'sass/common.rb'
 
     class Sass < SassCommon
       include Indentation
 
+      title "Sass"
       desc 'The Sass stylesheet language language (sass-lang.com)'
 
       tag 'sass'

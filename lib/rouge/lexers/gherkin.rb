@@ -4,7 +4,10 @@ module Rouge
   module Lexers
     class Gherkin < RegexLexer
       tag 'gherkin'
-      aliases 'cucumber'
+      aliases 'cucumber', 'behat'
+
+      title "Gherkin"
+      desc 'A business-readable spec DSL ( github.com/cucumber/cucumber/wiki/Gherkin )'
 
       filenames '*.feature'
       mimetypes 'text/x-gherkin'
@@ -54,17 +57,17 @@ module Rouge
           reset_stack
 
           keyword = m[1]
-          if self.class.keywords[:element].include? keyword
-            group Keyword::Namespace; push :description
+          keyword_tok = if self.class.keywords[:element].include? keyword
+            push :description; Keyword::Namespace
           elsif self.class.keywords[:feature].include? keyword
-            group Keyword::Declaration; push :feature_description
+            push :feature_description; Keyword::Declaration
           elsif self.class.keywords[:examples].include? keyword
-            group Name::Namespace; push :example_description
+            push :example_description; Name::Namespace
           else
-            group Error
+            Error
           end
 
-          group Punctuation
+          groups keyword_tok, Punctuation
         end
       end
 
@@ -132,4 +135,3 @@ module Rouge
     end
   end
 end
-

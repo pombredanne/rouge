@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 describe Rouge::Lexers::R do
   let(:subject) { Rouge::Lexers::R.new }
 
@@ -6,7 +8,6 @@ describe Rouge::Lexers::R do
 
     it 'guesses by filename' do
       assert_guess :filename => 'foo.R'
-      assert_guess :filename => 'foo.S'
       assert_guess :filename => '.Rhistory'
       assert_guess :filename => '.Rprofile'
     end

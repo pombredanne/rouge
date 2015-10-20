@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Javascript < RegexLexer
+      title "JavaScript"
       desc "JavaScript, the browser scripting language"
 
       tag 'javascript'
@@ -18,28 +21,59 @@ module Rouge
       state :comments_and_whitespace do
         rule /\s+/, Text
         rule /<!--/, Comment # really...?
-        rule %r(//.*?\n), Comment::Single
+        rule %r(//.*?$), Comment::Single
         rule %r(/\*.*?\*/)m, Comment::Multiline
       end
 
-      state :slash_starts_regex do
+      state :expr_start do
         mixin :comments_and_whitespace
 
-        rule %r(
-          / # opening slash
-          ( \\. # escape sequences
-          | [^/\\\n] # regular characters
-          | \[ (\\. | [^\]\\\n])* \] # character classes
-          )+
-          / # closing slash
-          (?:[gim]+\b|\B) # flags
-        )x, Str::Regex, :pop!
+        rule %r(/) do
+          token Str::Regex
+          goto :regex
+        end
 
-        # if it's not matched by the above r.e., it's not
-        # a valid expression, so we use :bad_regex to eat until the
-        # end of the line.
-        rule %r(/), Str::Regex, :bad_regex
+        rule /[{]/, Punctuation, :object
+
         rule //, Text, :pop!
+      end
+
+      state :regex do
+        rule %r(/) do
+          token Str::Regex
+          goto :regex_end
+        end
+
+        rule %r([^/]\n), Error, :pop!
+
+        rule /\n/, Error, :pop!
+        rule /\[\^/, Str::Escape, :regex_group
+        rule /\[/, Str::Escape, :regex_group
+        rule /\\./, Str::Escape
+        rule %r{[(][?][:=<!]}, Str::Escape
+        rule /[{][\d,]+[}]/, Str::Escape
+        rule /[()?]/, Str::Escape
+        rule /./, Str::Regex
+      end
+
+      state :regex_end do
+        rule /[gim]+/, Str::Regex, :pop!
+        rule(//) { pop! }
+      end
+
+      state :regex_group do
+        # specially highlight / in a group to indicate that it doesn't
+        # close the regex
+        rule /\//, Str::Escape
+
+        rule %r([^/]\n) do
+          token Error
+          pop! 2
+        end
+
+        rule /\]/, Str::Escape, :pop!
+        rule /\\./, Str::Escape
+        rule /./, Str::Regex
       end
 
       state :bad_regex do
@@ -50,7 +84,7 @@ module Rouge
         @keywords ||= Set.new %w(
           for in while do break return continue switch case default
           if else throw try catch finally new delete typeof instanceof
-          void this
+          void this yield
         )
       end
 
@@ -84,37 +118,33 @@ module Rouge
       id = /[$a-zA-Z_][a-zA-Z0-9_]*/
 
       state :root do
-        rule /\A\s*#!.*?\n/m, Comment::Preproc
-        rule %r((?<=\n)(?=\s|/|<!--)), Text, :slash_starts_regex
+        rule /\A\s*#!.*?\n/m, Comment::Preproc, :statement
+        rule /\n/, Text, :statement
+        rule %r((?<=\n)(?=\s|/|<!--)), Text, :expr_start
         mixin :comments_and_whitespace
         rule %r(\+\+ | -- | ~ | && | \|\| | \\(?=\n) | << | >>>? | ===
                | !== )x,
-          Operator, :slash_starts_regex
-        rule %r([-<>+*%&|\^/!=]=?), Operator, :slash_starts_regex
-        rule /[(\[;,]/, Punctuation, :slash_starts_regex
+          Operator, :expr_start
+        rule %r([-<>+*%&|\^/!=]=?), Operator, :expr_start
+        rule /[(\[,]/, Punctuation, :expr_start
+        rule /;/, Punctuation, :statement
         rule /[)\].]/, Punctuation
 
         rule /[?]/ do
           token Punctuation
           push :ternary
-          push :slash_starts_regex
+          push :expr_start
         end
 
-        rule /[{](?=\s*(#{id}|"[^\n]*?")\s*:)/m, Punctuation, :object
-
-        rule /[{]/ do
-          token Punctuation
-          push :block
-          push :slash_starts_regex
-        end
+        rule /[{}]/, Punctuation, :statement
 
         rule id do |m|
           if self.class.keywords.include? m[0]
             token Keyword
-            push :slash_starts_regex
+            push :expr_start
           elsif self.class.declarations.include? m[0]
             token Keyword::Declaration
-            push :slash_starts_regex
+            push :expr_start
           elsif self.class.reserved.include? m[0]
             token Keyword::Reserved
           elsif self.class.constants.include? m[0]
@@ -134,28 +164,40 @@ module Rouge
       end
 
       # braced parts that aren't object literals
-      state :block do
+      state :statement do
         rule /(#{id})(\s*)(:)/ do
           groups Name::Label, Text, Punctuation
         end
 
-        rule /[}]/, Punctuation, :pop!
-        mixin :root
+        rule /[{}]/, Punctuation
+
+        mixin :expr_start
       end
 
       # object literals
       state :object do
-        rule /[}]/, Punctuation, :pop!
+        mixin :comments_and_whitespace
+        rule /[}]/ do
+          token Punctuation
+          goto :statement
+        end
+
         rule /(#{id})(\s*)(:)/ do
           groups Name::Attribute, Text, Punctuation
+          push :expr_start
         end
+
         rule /:/, Punctuation
         mixin :root
       end
 
       # ternary expressions, where <id>: is not a label!
       state :ternary do
-        rule /:/, Punctuation, :pop!
+        rule /:/ do
+          token Punctuation
+          goto :expr_start
+        end
+
         mixin :root
       end
     end
@@ -164,7 +206,7 @@ module Rouge
       desc "JavaScript Object Notation (json.org)"
       tag 'json'
       filenames '*.json'
-      mimetypes 'application/json'
+      mimetypes 'application/json', 'application/vnd.api+json'
 
       # TODO: is this too much of a performance hit?  JSON is quite simple,
       # so I'd think this wouldn't be too bad, but for large documents this
@@ -173,14 +215,12 @@ module Rouge
         return 0.8 if text =~ /\A\s*{/m && text.lexes_cleanly?(self)
       end
 
+      string = /"(\\.|[^"])*"/
+
       state :root do
         mixin :whitespace
-        # special case for empty objects
-        rule /(\{)(\s*)(\})/m do
-          groups Punctuation, Text::Whitespace, Punctuation
-        end
-        rule /(?:true|false)\b/, Keyword::Constant
-        rule /{/,  Punctuation, :object_key
+        rule /(?:true|false|null)\b/, Keyword::Constant
+        rule /{/,  Punctuation, :object_key_initial
         rule /\[/, Punctuation, :array
         rule /-?(?:0|[1-9]\d*)\.\d+(?:e[+-]\d+)?/i, Num::Float
         rule /-?(?:0|[1-9]\d*)(?:e[+-]\d+)?/i, Num::Integer
@@ -192,12 +232,23 @@ module Rouge
       end
 
       state :has_string do
-        rule /"(\\.|[^"])*"/, Str::Double
+        rule string, Str::Double
       end
 
+      # in object_key_initial it's allowed to immediately close the object again
+      state :object_key_initial do
+        mixin :whitespace
+        rule string do
+          token Name::Tag
+          goto :object_key
+        end
+        rule /}/, Punctuation, :pop!
+      end
+
+      # in object_key at least one more name/value pair is required
       state :object_key do
         mixin :whitespace
-        mixin :has_string
+        rule string, Name::Tag
         rule /:/, Punctuation, :object_val
         rule /}/, Error, :pop!
       end
@@ -214,5 +265,33 @@ module Rouge
         mixin :root
       end
     end
+
+    class JSONDOC < JSON
+      desc "JavaScript Object Notation with extenstions for documentation"
+      tag 'json-doc'
+
+      prepend :root do
+        mixin :comments
+        rule /(\.\.\.)/, Comment::Single
+      end
+
+      prepend :object_key_initial do
+        mixin :comments
+        rule /(\.\.\.)/, Comment::Single
+      end
+
+      prepend :object_key do
+        mixin :comments
+        rule /(\.\.\.)/ do
+          token Comment::Single
+          goto :object_key_initial
+        end
+      end
+
+      state :comments do
+        rule %r(//.*?$), Comment::Single
+      end
+    end
+
   end
 end

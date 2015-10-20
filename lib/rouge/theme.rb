@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   class Theme
     include Token::Tokens
@@ -82,7 +84,7 @@ module Rouge
       end
 
       def get_own_style(token)
-        token.token_chain.each do |anc|
+        token.token_chain.reverse_each do |anc|
           return styles[anc] if styles[anc]
         end
 
@@ -90,7 +92,11 @@ module Rouge
       end
 
       def get_style(token)
-        get_own_style(token) || styles[Token::Tokens::Text]
+        get_own_style(token) || base_style
+      end
+
+      def base_style
+        styles[Token::Tokens::Text]
       end
 
       def name(n=nil)
@@ -140,14 +146,16 @@ module Rouge
       return enum_for(:render).to_a.join("\n") unless b
 
       # shared styles for tableized line numbers
-      yield "#{@scope} table { border-spacing: 0; }"
       yield "#{@scope} table td { padding: 5px; }"
       yield "#{@scope} table pre { margin: 0; }"
-      yield "#{@scope} table .gutter { text-align: right; }"
 
       styles.each do |tok, style|
         style.render(css_selector(tok), &b)
       end
+    end
+
+    def render_base(selector, &b)
+      self.class.base_style.render(selector, &b)
     end
 
     def style_for(tok)

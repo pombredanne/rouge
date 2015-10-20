@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 describe Rouge::Lexers::Shell do
   let(:subject) { Rouge::Lexers::Shell.new }
 
@@ -81,6 +83,7 @@ describe Rouge::Lexers::Shell do
       assert_guess :filename => 'foo.zsh'
       assert_guess :filename => 'foo.ksh'
       assert_guess :filename => 'foo.bash'
+      assert_guess :filename => 'PKGBUILD'
       deny_guess   :filename => 'foo'
     end
 

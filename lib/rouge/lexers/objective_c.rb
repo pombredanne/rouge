@@ -1,10 +1,13 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
-    Lexer.load_const :C, 'c.rb'
+    load_lexer 'c.rb'
 
     class ObjectiveC < C
-      desc 'objective_c'
       tag 'objective_c'
+      title "Objective-C"
+      desc 'an extension of C commonly used to write Apple software'
       aliases 'objc'
       filenames '*.m', '*.h'
 
@@ -14,7 +17,7 @@ module Rouge
         @at_keywords ||= %w(
           selector private protected public encode synchronized try
           throw catch finally end property synthesize dynamic optional
-          interface implementation
+          interface implementation import
         )
       end
 
@@ -27,7 +30,7 @@ module Rouge
       end
 
       def self.analyze_text(text)
-        return 1 if text =~ /@(end|implementation|protocol)\b/
+        return 1 if text =~ /@(end|implementation|protocol|property)\b/
 
         id = /[a-z$_][a-z0-9$_]*/i
         return 0.4 if text =~ %r(
@@ -44,7 +47,7 @@ module Rouge
 
       prepend :statements do
         rule /@"/, Str, :string
-        rule /@'(\\[0-7]{1,3}|\\x[a-fA-F0-9]{1,2}|\\.|[^\\'\n]')/
+        rule /@'(\\[0-7]{1,3}|\\x[a-fA-F0-9]{1,2}|\\.|[^\\'\n]')/,
           Str::Char
         rule /@(\d+[.]\d*|[.]\d+|\d+)e[+-]?\d+l?/i,
           Num::Float
@@ -76,6 +79,7 @@ module Rouge
 
         rule /[?]/, Punctuation, :ternary
         rule /\[/,  Punctuation, :message
+        rule /@\[/, Punctuation, :array_literal
       end
 
       state :ternary do
@@ -110,6 +114,12 @@ module Rouge
         end
 
         mixin :message_shared
+      end
+
+      state :array_literal do
+        rule /]/, Punctuation, :pop!
+        rule /,/, Punctuation
+        mixin :statements
       end
 
       state :classname do
@@ -185,4 +195,3 @@ module Rouge
     end
   end
 end
-

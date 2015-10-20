@@ -1,12 +1,12 @@
-# stdlib
-require 'set'
+# -*- coding: utf-8 -*- #
 
 module Rouge
   module Lexers
     class CommonLisp < RegexLexer
+      title "Common Lisp"
       desc "The Common Lisp variant of Lisp (common-lisp.net)"
       tag 'common_lisp'
-      aliases 'cl', 'common-lisp'
+      aliases 'cl', 'common-lisp', 'elisp', 'emacs-lisp'
 
       filenames '*.cl', '*.lisp', '*.el' # used for Elisp too
       mimetypes 'text/x-common-lisp'
@@ -264,20 +264,18 @@ module Rouge
 
         # complex
         rule /(#c)(\()/i do
-          group Num
-          group Punctuation
+          groups Num, Punctuation
           push :root
         end
 
         # arrays and structures
         rule /(#(?:\d+a|s))(\()/i do
-          group Literal::Other
-          group Punctuation
+          groups Str::Other, Punctuation
           push :root
         end
 
         # path
-        rule /#p?"(\\.|[^"])*"/i
+        rule /#p?"(\\.|[^"])*"/i, Str::Symbol
 
         # reference
         rule /#\d+[=#]/, Operator

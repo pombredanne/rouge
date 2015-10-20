@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     # shared states with SCSS
@@ -6,16 +8,22 @@ module Rouge
 
       state :content_common do
         rule /@for\b/, Keyword, :for
-        rule /@(debug|warn|if|while)/, Keyword, :value
+        rule /@(debug|warn|if|each|while|else|return|media)/, Keyword, :value
+
         rule /(@mixin)(\s+)(#{id})/ do
-          group Keyword; group Text; group Name::Function
+          groups Keyword, Text, Name::Function
+          push :value
+        end
+
+        rule /(@function)(\s+)(#{id})/ do
+          groups Keyword, Text, Name::Function
           push :value
         end
 
         rule /@extend\b/, Keyword, :selector
 
         rule /(@include)(\s+)(#{id})/ do
-          group Keyword; group Text; group Name::Decorator
+          groups Keyword, Text, Name::Decorator
           push :value
         end
 
@@ -23,7 +31,7 @@ module Rouge
 
         # $variable: assignment
         rule /([$]#{id})([ \t]*)(:)/ do
-          group Name::Variable; group Text; group Punctuation
+          groups Name::Variable, Text, Punctuation
           push :value
         end
       end
@@ -157,7 +165,7 @@ module Rouge
         mixin :attr_common
 
         rule /([ \t]*)(:)/ do
-          group Text; group Punctuation
+          groups Text, Punctuation
           push :value
         end
       end

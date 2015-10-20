@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class INI < RegexLexer
+      title "INI"
       desc 'the INI configuration format'
       tag 'ini'
 
@@ -24,8 +27,7 @@ module Rouge
         mixin :basic
 
         rule /(#{identifier})(\s*)(=)/ do
-          group Name::Property; group Text
-          group Punctuation
+          groups Name::Property, Text, Punctuation
           push :value
         end
 

@@ -1,39 +1,76 @@
 # Rouge
 
-[![Build Status](https://secure.travis-ci.org/jayferd/rouge.png)](http://travis-ci.org/jayferd/rouge)
+[![Build Status](https://secure.travis-ci.org/jneen/rouge.png)](http://travis-ci.org/jneen/rouge)
+[![Gem Version](https://badge.fury.io/rb/rouge.png)](http://badge.fury.io/rb/rouge)
 
-Rouge is a pure-ruby syntax highlighter.  It can highlight nearly 60 languages, and output HTML or ANSI 256-color text.  Its HTML output is compatible with stylesheets designed for [pygments][].
+[rouge]: http://rouge.jneen.net/
+
+[Rouge][] is a pure-ruby syntax highlighter.  It can highlight over 60 languages, and output HTML or ANSI 256-color text.  Its HTML output is compatible with stylesheets designed for [pygments][].
 
 If you'd like to help out with this project, assign yourself something from the [issues][] page, and send me a pull request (even if it's not done yet!).  Bonus points for feature branches.  In particular, I would appreciate help with the following lexers, from someone who has more experience with the language than I do:
 
 * Delphi/Pascal
 
-[issues]: https://github.com/jayferd/rouge/issues "Help Out"
+[issues]: https://github.com/jneen/rouge/issues "Help Out"
 [pygments]: http://pygments.org/ "Pygments"
 
 ## Usage
 
 First, take a look at the [pretty colors][].
 
-[pretty colors]: http://rouge.jayferd.us/demo
+[pretty colors]: http://rouge.jneen.net/
 
 ``` ruby
 # make some nice lexed html
 source = File.read('/etc/bashrc')
-formatter = Rouge::Formatters::HTML.new(:css_class => 'highlight')
+formatter = Rouge::Formatters::HTML.new(css_class: 'highlight')
 lexer = Rouge::Lexers::Shell.new
 formatter.format(lexer.lex(source))
 
 # Get some CSS
-Rouge::Themes::ThankfulEyes.render(:scope => '.highlight')
+Rouge::Themes::Base16.mode(:light).render(scope: '.highlight')
+# Or use Theme#find with string input
+Rouge::Theme.find('base16.light').render(scope: '.highlight')
 ```
 
-Rouge aims to be simple to extend, and to be a drop-in replacement pygments, with the same quality of output.
+### Full options
+#### Formatter options
+##### css_class: 'highlight'
+Apply a class to the syntax-highlighted output. Set to false to not apply any css class.
 
-Also, Rouge ships with a `rougify` command which allows you to easily highlight files in your terminal: 
+##### line_numbers: false
+Generate line numbers.
+
+##### start_line: 1
+Index to start line numbers.
+
+##### inline_theme: nil
+A `Rouge::CSSTheme` used to highlight the output with inline styles instead of classes. Allows string inputs (separate mode with a dot):
+
+```
+%w[colorful github monokai monokai.sublime thankful_eyes base16
+   base16.dark base16.light base16.solarized base16.monokai]
+```
+
+##### wrap: true
+Wrap the highlighted content in a container. Defaults to `<pre><code>`, or `<div>` if line numbers are enabled.
+
+#### Lexer options
+##### debug: false
+Print a trace of the lex on stdout
+
+##### parent: ''
+Allows you to specify which language the template is inside
+
+#### CSS theme options
+##### scope: '.highlight'
+CSS selector that styles are applied to, e.g. `Rouge::Themes::Monokai.mode(:sublime).render(scope: 'code')`
+
+Rouge aims to be simple to extend, and to be a drop-in replacement for pygments, with the same quality of output. Also, Rouge ships with a `rougify` command which allows you to easily highlight files in your terminal:
 
 ``` bash
 $ rougify foo.rb
+$ rougify style monokai.sublime > syntax.css
 ```
 
 ### Advantages to pygments.rb
@@ -47,7 +84,10 @@ $ rougify foo.rb
 ## You can even use it with Redcarpet
 
 ``` ruby
+require 'redcarpet'
+require 'rouge'
 require 'rouge/plugins/redcarpet'
+
 class HTML < Redcarpet::Render::HTML
   include Rouge::Plugins::Redcarpet # yep, that's it.
 end
@@ -61,6 +101,7 @@ Rouge is only for UTF-8 strings.  If you'd like to highlight a string with a dif
 
 ## Other integrations
 
+* Middleman: [middleman-syntax](https://github.com/middleman/middleman-syntax) (@bhollis)
 * Middleman: [middleman-rouge][] (@Linuus)
 * RDoc: [rdoc-rouge][] (@zzak)
 
@@ -71,7 +112,7 @@ Rouge is only for UTF-8 strings.  If you'd like to highlight a string with a dif
 
 ### Installing Ruby
 
-If you're here to implement a lexer for your awesome language, there's a good chance you don't already have a ruby development environment set up.  Follow the [instructions on the wiki](https://github.com/jayferd/rouge/wiki/Setting-up-Ruby) to get up and running.  If you have trouble getting set up, let me know - I'm always happy to help.
+If you're here to implement a lexer for your awesome language, there's a good chance you don't already have a ruby development environment set up.  Follow the [instructions on the wiki](https://github.com/jneen/rouge/wiki/Setting-up-Ruby) to get up and running.  If you have trouble getting set up, let me know - I'm always happy to help.
 
 ### Run the tests
 
@@ -134,10 +175,9 @@ class MyLexer < Rouge::RegexLexer
       end
     end
 
-    rule /(\w+)(:)/
-      # "group" yields the matched groups in order
-      group Name::Label
-      group Punctuation
+    rule /(\w+)(:)/ do
+      # "groups" yields the matched groups in order
+      groups Name::Label, Punctuation
     end
   end
 
@@ -146,6 +186,30 @@ class MyLexer < Rouge::RegexLexer
   end
 end
 ```
+
+If you're creating a lexer that's very similar to a different lexer, you can use subclassing (see C/C++/ObjC and also QML/Javascript for examples):
+
+``` ruby
+class MyLexer < OtherLexer
+  # independent states
+  state :my_state do ... end
+
+  # override states
+  state :your_state do ... end
+
+  # prepend rules to states
+  prepand :parent_state do ... end
+
+  # append rules to states
+  append :parent_state do ... end
+end
+```
+
+Please don't submit lexers that are largely copy-pasted from other files.
+
+## Tips
+
+I don't get paid to maintain rouge. If you've found this software useful, consider dropping a tip in the [bucket](http://cash.me/$jneen).
 
 ## License
 

@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Scheme < RegexLexer
+      title "Scheme"
       desc "The Scheme variant of Lisp"
 
       tag 'scheme'
@@ -79,9 +82,7 @@ module Rouge
         rule /(?:'|#|`|,@|,|\.)/, Operator
 
         rule /(['#])(\s*)(\()/m do
-          group Str::Symbol
-          group Text
-          group Punctuation
+          groups Str::Symbol, Text, Punctuation
         end
 
         rule /\(/, Punctuation, :command

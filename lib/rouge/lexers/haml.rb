@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     # A lexer for the Haml templating system for Ruby.
@@ -5,6 +7,7 @@ module Rouge
     class Haml < RegexLexer
       include Indentation
 
+      title "Haml"
       desc "The Haml templating system for Ruby (haml.info)"
 
       tag 'haml'
@@ -82,7 +85,7 @@ module Rouge
         rule %r(
           (/) (\[#{dot}*?\]) (#{dot}*\n)
         )x do
-          group Comment; group Comment::Special; group Comment
+          groups Comment, Comment::Special, Comment
           pop!
         end
 
@@ -115,7 +118,7 @@ module Rouge
           @filter_lexer = self.filters[filter_name]
           @filter_lexer.reset! unless @filter_lexer.nil?
 
-          debug { "    haml: filter #{filter_name.inspect} #{@filter_lexer.inspect}" }
+          puts "    haml: filter #{filter_name.inspect} #{@filter_lexer.inspect}" if @debug
         end
 
         mixin :eval_or_plain
@@ -203,11 +206,18 @@ module Rouge
       end
 
       state :interpolation do
-        rule /(#\{)(#{dot}*?)(\})/ do |m|
-          token Str::Interpol, m[1]
-          delegate ruby, m[2]
-          token Str::Interpol, m[3]
-        end
+        rule /#[{]/, Str::Interpol, :ruby
+      end
+
+      state :ruby do
+        rule /[}]/, Str::Interpol, :pop!
+        mixin :ruby_inner
+      end
+
+      state :ruby_inner do
+        rule(/[{]/) { delegate ruby; push :ruby_inner }
+        rule(/[}]/) { delegate ruby; pop! }
+        rule(/[^{}]+/) { delegate ruby }
       end
 
       state :indented_block do

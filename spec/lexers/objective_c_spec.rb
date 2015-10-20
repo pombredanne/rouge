@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 describe Rouge::Lexers::ObjectiveC do
   let(:subject) { Rouge::Lexers::ObjectiveC.new }
 
@@ -5,7 +7,7 @@ describe Rouge::Lexers::ObjectiveC do
     include Support::Guessing
 
     it 'guesses by filename' do
-      assert_guess :filename => 'foo.m'
+      assert_guess :filename => 'foo.m', :source => '@property'
     end
 
     it 'guesses by mimetype' do

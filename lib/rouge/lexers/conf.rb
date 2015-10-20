@@ -1,9 +1,12 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Conf < RegexLexer
       tag 'conf'
       aliases 'config', 'configuration'
 
+      title "Config File"
       desc 'A generic lexer for configuration files'
       filenames '*.conf', '*.config'
 

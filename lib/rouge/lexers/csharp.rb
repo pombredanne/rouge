@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class CSharp < RegexLexer
@@ -5,6 +7,9 @@ module Rouge
       aliases 'c#', 'cs'
       filenames '*.cs'
       mimetypes 'text/x-csharp'
+
+      title "C#"
+      desc 'a multi-paradigm language targeting .NET'
 
       # TODO: support more of unicode
       id = /@?[_a-z]\w*/i
@@ -39,9 +44,9 @@ module Rouge
         mixin :whitespace
 
         rule /^\s*\[.*?\]/, Name::Attribute
-        rule /[$]\s*"/, Str, :splice_string
-        rule /[$]\s*<#/, Str, :splice_recstring
-        rule /<#/, Str, :recstring
+        # rule /[$]\s*"/, Str, :splice_string
+        # rule /[$]\s*<#/, Str, :splice_recstring
+        # rule /<#/, Str, :recstring
 
         rule /(<\[)\s*(#{id}:)?/, Keyword
         rule /\]>/, Keyword

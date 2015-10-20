@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 # stdlib
 require 'strscan'
 require 'cgi'
+require 'set'
 
 module Rouge
   # @abstract
@@ -15,13 +18,6 @@ module Rouge
       # @see #lex
       def lex(stream, opts={}, &b)
         new(opts).lex(stream, &b)
-      end
-
-      def load_const(const_name, relpath)
-        return if Lexers.const_defined?(const_name)
-
-        root = Pathname.new(__FILE__).dirname.join('lexers')
-        load root.join(relpath)
       end
 
       def default_options(o={})
@@ -69,6 +65,14 @@ module Rouge
         lexer_class && lexer_class.new(opts)
       end
 
+      # Specify or get this lexer's title. Meant to be human-readable.
+      def title(t=nil)
+        if t.nil?
+          t = tag.capitalize
+        end
+        @title ||= t
+      end
+
       # Specify or get this lexer's description.
       def desc(arg=:absent)
         if arg == :absent
@@ -90,7 +94,7 @@ module Rouge
       def demo(arg=:absent)
         return @demo = arg unless arg == :absent
 
-        @demo = File.read(demo_file)
+        @demo = File.read(demo_file, encoding: 'utf-8')
       end
 
       # @return a list of all lexers.
@@ -146,7 +150,7 @@ module Rouge
       #   other hints.
       #
       # @see Lexer.analyze_text
-      # @see Lexer.multi_guess
+      # @see Lexer.guesses
       def guess(info={})
         lexers = guesses(info)
 
@@ -296,7 +300,7 @@ module Rouge
 
       # @private
       def assert_utf8!(str)
-        return if %w(US-ASCII UTF-8).include? str.encoding.name
+        return if %w(US-ASCII UTF-8 ASCII-8BIT).include? str.encoding.name
         raise EncodingError.new(
           "Bad encoding: #{str.encoding.names.join(',')}. " +
           "Please convert your string to UTF-8."
@@ -322,6 +326,8 @@ module Rouge
     #   tried and each stream consumed.  Try it, it's pretty useful.
     def initialize(opts={})
       options(opts)
+
+      @debug = option(:debug)
     end
 
     # get and/or specify the options for this lexer.
@@ -340,25 +346,21 @@ module Rouge
       end
     end
 
+    # @deprecated
+    # Instead of `debug { "foo" }`, simply `puts "foo" if @debug`.
+    #
     # Leave a debug message if the `:debug` option is set.  The message
     # is given as a block because some debug messages contain calculated
     # information that is unnecessary for lexing in the real world.
     #
+    # Calls to this method should be guarded with "if @debug" for best
+    # performance when debugging is turned off.
+    #
     # @example
-    #   debug { "hello, world!" }
-    def debug(&b)
-      # This method is a hotspot, unfortunately.
-      #
-      # For performance reasons, the "debug" option of a lexer cannot
-      # be changed once it has begun lexing.  This method will redefine
-      # itself on the first call to a noop if "debug" is not set.
-      if option(:debug)
-        def self.debug; puts yield; end
-      else
-        def self.debug; end
-      end
-
-      debug(&b)
+    #   debug { "hello, world!" } if @debug
+    def debug
+      warn "Lexer#debug is deprecated.  Simply puts if @debug instead."
+      puts yield if @debug
     end
 
     # @abstract
@@ -374,7 +376,7 @@ module Rouge
     # @option opts :continue
     #   Continue the lex from the previous state (i.e. don't call #reset!)
     def lex(string, opts={}, &b)
-      return enum_for(:lex, string) unless block_given?
+      return enum_for(:lex, string, opts) unless block_given?
 
       Lexer.assert_utf8!(string)
 
@@ -427,6 +429,18 @@ module Rouge
     #   like {TextAnalyzer#shebang?} and {TextAnalyzer#doctype?}
     def self.analyze_text(text)
       0
+    end
+  end
+
+  module Lexers
+    @_loaded_lexers = {}
+
+    def self.load_lexer(relpath)
+      return if @_loaded_lexers.key?(relpath)
+      @_loaded_lexers[relpath] = true
+
+      root = Pathname.new(__FILE__).dirname.join('lexers')
+      load root.join(relpath)
     end
   end
 end

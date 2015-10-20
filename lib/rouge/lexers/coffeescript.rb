@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Coffeescript < RegexLexer
@@ -6,6 +8,7 @@ module Rouge
       filenames '*.coffee', 'Cakefile'
       mimetypes 'text/coffeescript'
 
+      title "CoffeeScript"
       desc 'The Coffeescript programming language (coffeescript.org)'
 
       def self.analyze_text(text)
@@ -80,14 +83,12 @@ module Rouge
         rule /[-=]>/, Name::Function
 
         rule /(@)([ \t]*)(#{id})/ do
-          group Name::Variable::Instance; group Text
-          group Name::Attribute
+          groups Name::Variable::Instance, Text, Name::Attribute
           push :slash_starts_regex
         end
 
         rule /([.])([ \t]*)(#{id})/ do
-          group Punctuation; group Text
-          group Name::Attribute
+          groups Punctuation, Text, Name::Attribute
           push :slash_starts_regex
         end
 

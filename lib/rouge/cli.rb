@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 # not required by the main lib.
 # to use this module, require 'rouge/cli'.
 
@@ -42,6 +44,7 @@ module Rouge
       yield %|	help		#{Help.desc}|
       yield %|	style		#{Style.desc}|
       yield %|	list		#{List.desc}|
+      yield %|	version		#{Version.desc}|
       yield %||
       yield %|See `rougify help <command>` for more info.|
     end
@@ -74,12 +77,18 @@ module Rouge
     def initialize(options={})
     end
 
-    def error!(msg, status=1)
+    def self.error!(msg, status=1)
       raise Error.new(msg, status)
+    end
+
+    def error!(*a)
+      self.class.error!(*a)
     end
 
     def self.class_from_arg(arg)
       case arg
+      when 'version', '--version', '-v'
+        Version
       when 'help'
         Help
       when 'highlight', 'hi'
@@ -88,6 +97,18 @@ module Rouge
         Style
       when 'list'
         List
+      end
+    end
+
+    class Version < CLI
+      def self.desc
+        "print the rouge version number"
+      end
+
+      def self.parse(*); new; end
+
+      def run
+        puts Rouge.version
       end
     end
 
@@ -143,6 +164,10 @@ module Rouge
         yield %[                            If not provided, rougify will try to guess]
         yield %[                            based on --mimetype, the filename, and the]
         yield %[                            file contents.]
+        yield %[]
+        yield %[--formatter|-f <opts>       specify the output formatter to use.]
+        yield %[                            If not provided, rougify will default to]
+        yield %[                            terminal256.]
         yield %[]
         yield %[--mimetype|-m <mimetype>    specify a mimetype for lexer guessing]
         yield %[]
@@ -222,20 +247,18 @@ module Rouge
         @lexer_opts = opts[:lexer_opts]
 
         formatter_class = Formatter.find(opts[:formatter]) \
-          or error!  "unknown formatter #{opts[:formatter]}"
+          or error! "unknown formatter #{opts[:formatter]}"
 
         @formatter = formatter_class.new(opts[:formatter_opts])
       end
 
       def run
-        formatter.format(lexer.lex(input)) do |chunk|
-          print chunk
-        end
+        formatter.format(lexer.lex(input), &method(:print))
       end
 
     private
       def self.parse_cgi(str)
-        pairs = CGI.parse(str).map { |k, v| v.first }
+        pairs = CGI.parse(str).map { |k, v| [k.to_sym, v.first] }
         Hash[pairs]
       end
     end
@@ -255,6 +278,9 @@ module Rouge
         yield %||
         yield %|options:|
         yield %|  --scope	(default: .highlight) a css selector to scope by|
+        yield %||
+        yield %|available themes:|
+        yield %|  #{Theme.registry.keys.sort.join(', ')}|
       end
 
       def self.parse(argv)
@@ -274,7 +300,8 @@ module Rouge
       end
 
       def initialize(opts)
-        theme_class = Theme.find(opts.delete(:theme_name)) \
+        theme_name = opts.delete(:theme_name)
+        theme_class = Theme.find(theme_name) \
           or error! "unknown theme: #{theme_name}"
 
         @theme = theme_class.new(opts)
@@ -305,7 +332,7 @@ module Rouge
       def run
         puts "== Available Lexers =="
 
-        Lexer.all.each do |lexer|
+        Lexer.all.sort_by(&:tag).each do |lexer|
           desc = "#{lexer.desc}"
           if lexer.aliases.any?
             desc << " [aliases: #{lexer.aliases.join(',')}]"

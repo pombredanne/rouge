@@ -1,10 +1,16 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class PHP < TemplateLexer
+      title "PHP"
       desc "The PHP scripting language (php.net)"
       tag 'php'
       aliases 'php', 'php3', 'php4', 'php5'
-      filenames '*.php', '*.php[345]'
+      filenames '*.php', '*.php[345]',
+                # Support Drupal file extensions, see:
+                # https://github.com/gitlabhq/gitlabhq/issues/8900
+                '*.module', '*.inc', '*.profile', '*.install', '*.test'
       mimetypes 'text/x-php'
 
       default_options :parent => 'html'
@@ -53,8 +59,14 @@ module Rouge
           while endforeach global __FILE__ endif list __LINE__ endswitch
           new __sleep endwhile not array __wakeup E_ALL NULL final
           php_user_filter interface implements public private protected
-          abstract clone try catch throw this use namespace
+          abstract clone try catch throw this use namespace yield
         )
+      end
+
+      def self.analyze_text(text)
+        return 1 if text.shebang?('php')
+        return 0.3 if /<\?(?!xml)/ =~ text
+        0
       end
 
       state :root do
@@ -70,11 +82,11 @@ module Rouge
         rule /#.*?\n/, Comment::Single
         rule %r(//.*?\n), Comment::Single
         # empty comment, otherwise seen as the start of a docstring
-        rule %r(/\*\*/)
+        rule %r(/\*\*/), Comment::Multiline
         rule %r(/\*\*.*?\*/)m, Str::Doc
         rule %r(/\*.*?\*/)m, Comment::Multiline
         rule /(->|::)(\s*)([a-zA-Z_][a-zA-Z0-9_]*)/ do
-          group Operator; group Text; group Name::Attribute
+          groups Operator, Text, Name::Attribute
         end
 
         rule /[~!%^&*+=\|:.<>\/?@-]+/, Operator
@@ -82,17 +94,17 @@ module Rouge
         rule /class\b/, Keyword, :classname
         # anonymous functions
         rule /(function)(\s*)(?=\()/ do
-          group Keyword; group Text
+          groups Keyword, Text
         end
 
         # named functions
         rule /(function)(\s+)(&?)(\s*)/ do
-          group Keyword; group Text; group Operator; group Text
+          groups Keyword, Text, Operator, Text
           push :funcname
         end
 
         rule /(const)(\s+)([a-zA-Z_]\w*)/i do
-          group Keyword; group Text; group Name::Constant
+          groups Keyword, Text, Name::Constant
         end
 
         rule /(true|false|null)\b/, Keyword::Constant
@@ -141,7 +153,7 @@ module Rouge
         rule /\{\$\{/, Str::Interpol, :interp_double
         rule /\{(?=\$)/, Str::Interpol, :interp_single
         rule /(\{)(\S+)(\})/ do
-          group Str::Interpol; group Name::Variable; group Str::Interpol
+          groups Str::Interpol, Name::Variable, Str::Interpol
         end
 
         rule /[${\\]+/, Str::Double

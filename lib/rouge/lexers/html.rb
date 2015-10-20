@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class HTML < RegexLexer
+      title "HTML"
       desc "HTML, the markup language of the web"
       tag 'html'
       filenames '*.htm', '*.html', '*.xhtml'
@@ -14,7 +17,7 @@ module Rouge
       state :root do
         rule /[^<&]+/m, Text
         rule /&\S*?;/, Name::Entity
-        rule /<!DOCTYPE .*?>/i, Comment::Preproc
+        rule /<!DOCTYPE .*?>/im, Comment::Preproc
         rule /<!\[CDATA\[.*?\]\]>/m, Comment::Preproc
         rule /<!--/, Comment, :comment
         rule /<\?.*?\?>/m, Comment::Preproc # php? really?
@@ -31,8 +34,8 @@ module Rouge
           push :tag
         end
 
-        rule %r(<\s*[a-zA-Z0-9:]+), Name::Tag, :tag # opening tags
-        rule %r(<\s*/\s*[a-zA-Z0-9:]+\s*>), Name::Tag # closing tags
+        rule %r(<\s*[a-zA-Z0-9:-]+), Name::Tag, :tag # opening tags
+        rule %r(<\s*/\s*[a-zA-Z0-9:-]+\s*>), Name::Tag # closing tags
       end
 
       state :comment do

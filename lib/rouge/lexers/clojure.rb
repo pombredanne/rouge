@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Clojure < RegexLexer
+      title "Clojure"
       desc "The Clojure programming language (clojure.org)"
 
       tag 'clojure'
@@ -79,7 +82,7 @@ module Rouge
 
         rule /"(\\.|[^"])*"/, Str
         rule /'#{keyword}/, Str::Symbol
-        rule /:#{keyword}/, Name::Constant
+        rule /::?#{keyword}/, Name::Constant
         rule /\\(.|[a-z]+)/i, Str::Char
 
 

@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Rust < RegexLexer
+      title "Rust"
       desc 'The Rust programming language (rust-lang.org)'
       tag 'rust'
       aliases 'rs'
-      # TODO: *.rc conflicts with the rc shell...
-      filenames '*.rs', '*.rc'
+      filenames '*.rs'
       mimetypes 'text/x-rust'
 
       def self.analyze_text(text)
@@ -17,6 +19,7 @@ module Rouge
           as assert break const copy do drop else enum extern fail false
           fn for if impl let log loop match mod move mut priv pub pure
           ref return self static struct true trait type unsafe use while
+          box
         )
       end
 
@@ -30,6 +33,7 @@ module Rouge
           Neg Nil None Num off_t Ok Option Ord Owned pid_t Ptr ptrdiff_t
           Right Send Shl Shr size_t Some ssize_t str Sub Success time_t
           u16 u32 u64 u8 uint uintptr_t
+          Box Vec String Gc Rc Arc
         )
       end
 
@@ -87,7 +91,7 @@ module Rouge
         rule /([.]\s*)?#{id}(?=\s*[(])/m, Name::Function
         rule /[.]\s*#{id}/, Name::Property
         rule /(#{id})(::)/m do
-          group Name::Namespace; group Punctuation
+          groups Name::Namespace, Punctuation
         end
 
         # macros
@@ -109,13 +113,13 @@ module Rouge
 
         rule /[\[{(]/ do |m|
           @macro_delims[delim_map[m[0]]] += 1
-          debug { "    macro_delims: #{@macro_delims.inspect}" }
+          puts "    macro_delims: #{@macro_delims.inspect}" if @debug
           token Punctuation
         end
 
         rule /[\]})]/ do |m|
           @macro_delims[m[0]] -= 1
-          debug { "    macro_delims: #{@macro_delims.inspect}" }
+          puts "    macro_delims: #{@macro_delims.inspect}" if @debug
           pop! if macro_closed?
           token Punctuation
         end

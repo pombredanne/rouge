@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 describe Rouge::Lexers::Javascript do
   let(:subject) { Rouge::Lexers::Javascript.new }
 
@@ -21,6 +23,7 @@ describe Rouge::Lexers::Javascript do
     it 'guesses by mimetype' do
       assert_guess :mimetype => 'text/javascript'
       assert_guess Rouge::Lexers::JSON, :mimetype => 'application/json'
+      assert_guess Rouge::Lexers::JSON, :mimetype => 'application/vnd.api+json'
     end
 
     it 'guesses by source' do

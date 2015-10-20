@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- #
+
 describe Rouge::Lexer do
   include Support::Lexing
 
@@ -51,8 +53,7 @@ describe Rouge::Lexer do
     callback_lexer = Class.new(Rouge::RegexLexer) do
       state :root do
         rule /(a)(b)/ do |s|
-          group 'A'
-          group 'B'
+          groups('A', 'B')
         end
       end
     end

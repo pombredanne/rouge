@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Handlebars < TemplateLexer
+      title "Handlebars"
       desc 'the Handlebars and Mustache templating languages'
       tag 'handlebars'
       aliases 'hbs', 'mustache'

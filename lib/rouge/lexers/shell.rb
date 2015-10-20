@@ -1,12 +1,15 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Shell < RegexLexer
+      title "shell"
       desc "Various shell languages, including sh and bash"
 
       tag 'shell'
       aliases 'bash', 'zsh', 'ksh', 'sh'
       filenames '*.sh', '*.bash', '*.zsh', '*.ksh',
-                '.bashrc', '.zshrc', '.kshrc', '.profile'
+                '.bashrc', '.zshrc', '.kshrc', '.profile', 'PKGBUILD'
 
       mimetypes 'application/x-sh', 'application/x-shellscript'
 
@@ -39,8 +42,7 @@ module Rouge
         rule /^\S*[\$%>#] +/, Generic::Prompt
 
         rule /(\b\w+)(=)/ do |m|
-          group Name::Variable
-          group Operator
+          groups Name::Variable, Operator
         end
 
         rule /[\[\]{}()=]/, Operator

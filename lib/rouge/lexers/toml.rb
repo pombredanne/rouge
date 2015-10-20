@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class TOML < RegexLexer
+      title "TOML"
       desc 'the TOML configuration format (https://github.com/mojombo/toml)'
       tag 'toml'
 
@@ -30,8 +33,7 @@ module Rouge
         mixin :basic
 
         rule /(#{identifier})(\s*)(=)/ do
-          group Name::Property; group Text
-          group Punctuation
+          groups Name::Property, Text, Punctuation
           push :value
         end
 

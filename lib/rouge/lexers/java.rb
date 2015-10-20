@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Java < RegexLexer
+      title "Java"
       desc "The Java programming language (java.com)"
 
       tag 'java'
@@ -40,7 +43,7 @@ module Rouge
         rule /@#{id}/, Name::Decorator
         rule /(?:#{keywords.join('|')})\b/, Keyword
         rule /(?:#{declarations.join('|')})\b/, Keyword::Declaration
-        rule /(?:#{types.join('|')})/, Keyword::Type
+        rule /(?:#{types.join('|')})\b/, Keyword::Type
         rule /package\b/, Keyword::Namespace
         rule /(?:true|false|null)\b/, Keyword::Constant
         rule /(?:class|interface)\b/, Keyword::Declaration, :class
@@ -48,8 +51,7 @@ module Rouge
         rule /"(\\\\|\\"|[^"])*"/, Str
         rule /'(?:\\.|[^\\]|\\u[0-9a-f]{4})'/, Str::Char
         rule /(\.)(#{id})/ do
-          group Operator
-          group Name::Attribute
+          groups Operator, Name::Attribute
         end
         rule /#{id}:/, Name::Label
         rule /\$?#{id}/, Name

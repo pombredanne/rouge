@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   class Token
     class << self
-      def name; @name; end
-      def parent; @parent; end
-      def shortname; @shortname; end
+      attr_reader :name
+      attr_reader :parent
+      attr_reader :shortname
 
       def cache
         @cache ||= {}
@@ -72,7 +74,7 @@ module Rouge
       # XXX IMPORTANT XXX
       # For compatibility, this list must be kept in sync with
       # pygments.token.STANDARD_TYPES
-      # please see https://github.com/jayferd/rouge/wiki/List-of-tokens
+      # please see https://github.com/jneen/rouge/wiki/List-of-tokens
       token :Text, '' do
         token :Whitespace, 'w'
       end

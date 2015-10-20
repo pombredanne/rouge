@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Go < RegexLexer
+      title "Go"
       desc 'The Go programming language (http://golang.org)'
       tag 'go'
       aliases 'go', 'golang'

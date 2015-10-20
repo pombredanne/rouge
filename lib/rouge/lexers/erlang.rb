@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Erlang < RegexLexer
+      title "Erlang"
       desc "The Erlang programming language (erlang.org)"
       tag 'erlang'
       aliases 'erl'
@@ -75,13 +78,10 @@ module Rouge
         rule(/<</, Name::Label)
         rule(/>>/, Name::Label)
         rule %r{(#{atom_re})(:)} do
-          group Name::Namespace
-          group Punctuation
+          groups Name::Namespace, Punctuation
         end
         rule %r{(?:^|(?<=:))(#{atom_re})(\s*)(\()} do
-          group Name::Function
-          group Text
-          group Punctuation
+          groups Name::Function, Text, Punctuation
         end
         rule(%r{[+-]?#{base_re}#[0-9a-zA-Z]+}, Num::Integer)
         rule(/[+-]?\d+/, Num::Integer)
@@ -104,17 +104,11 @@ module Rouge
 
       state :directive do
         rule %r{(define)(\s*)(\()(#{macro_re})} do
-          group Name::Entity
-          group Text
-          group Punctuation
-          group Name::Constant
+          groups Name::Entity, Text, Punctuation, Name::Constant
           pop!
         end
         rule %r{(record)(\s*)(\()(#{macro_re})} do
-          group Name::Entity
-          group Text
-          group Punctuation
-          group Name::Label
+          groups Name::Entity, Text, Punctuation, Name::Label
           pop!
         end
         rule(atom_re, Name::Entity, :pop!)

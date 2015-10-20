@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
     class Perl < RegexLexer
+      title "Perl"
       desc "The Perl scripting language (perl.org)"
 
       tag 'perl'
@@ -67,9 +70,7 @@ module Rouge
         rule /(?:#{keywords.join('|')})\b/, Keyword
 
         rule /(format)(\s+)([a-zA-Z0-9_]+)(\s*)(=)(\s*\n)/ do
-          group Keyword; group Text
-          group Name; group Text
-          group Punctuation; group Text
+          groups Keyword, Text, Name, Text, Punctuation, Text
 
           push :format
         end
@@ -166,8 +167,7 @@ module Rouge
 
         # argument declaration
         rule /(\([$@%]*\))(\s*)/ do
-          group Punctuation
-          group Text
+          groups Punctuation, Text
         end
 
         rule /.*?{/, Punctuation, :pop!

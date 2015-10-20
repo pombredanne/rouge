@@ -2,12 +2,54 @@
 # ruby 1.9 examples
 #######
 
+state :foo do
+  rule %r(/) do
+    token Operator
+    goto :expr_start
+  end
+
+  rule(//) { goto :method_call_spaced }
+end
+
+state :foo do
+  rule %r(/), Thing
+end
+
 %i(this is an array of symbols)
 %I(this is too, but with #{@interpolation})
 hash = { answer: 42 }
 link_to 'new', new_article_path, class: 'btn'
 # not a symbol
 a ? b:c
+
+a/1 # comment
+a / b # comment
+a /1 \r[egex]\//
+a/ b #comment
+x.a / 1 # comment
+Foo::a / 3 + 4
+
+########
+# method calls
+########
+
+foo.bar
+foo.bar.baz
+foo.bar(123).baz()
+
+foo.
+  bar
+
+foo
+  .bar()
+  .baz
+
+foo.
+  bar
+
+foo.
+  bar().
+  baz
 
 ########
 # function definitions
@@ -47,6 +89,9 @@ x=0
 
 #leere regex
 test //, 123
+
+{staples: /\ASTAPLE?S?\s*[0-9]/i,
+ target: "^TARGET "}
 
 while x<100
  puts"#{g[x]}"
@@ -133,7 +178,7 @@ EOE
 
 <<X
 X
-X
+X "foo" # This is a method call, heredoc ends at the prev line
 
 %s(uninter\)pre\ted)            # comment here
 %q(uninter\)pre\ted)            # comment here
@@ -173,6 +218,8 @@ too
 # this not
 2 /4
 asfsadf/
+
+foo[:bar] / baz[:zot]
 
 
 #from: http://coderay.rubychan.de/rays/show/383
@@ -227,6 +274,10 @@ DATA.read.split(/\n\n\n\s*/).each do |event|
 		events[ [day, daytime] ] << [kind, name + comment]
 	end
 end
+
+foo = 3
+foo %= 2
+foo /= 10 # not a regex
 
 conflicts = 0
 events.to_a.sort_by do |(day, daytime),|

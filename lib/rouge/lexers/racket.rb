@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*- #
 module Rouge
   module Lexers
     class Racket < RegexLexer
-      desc "Racket is a Lisp descended from Scheme"
+      title "Racket"
+      desc "Racket is a Lisp descended from Scheme (racket-lang.org)"
 
       tag 'racket'
       filenames '*.rkt', '*.rktd', '*.rktl'
@@ -510,9 +511,7 @@ module Rouge
         rule /(?:'|#|`|,@|,|\.)/, Operator
 
         rule /(['#])(\s*)(\()/m do
-          group Str::Symbol
-          group Text
-          group Punctuation
+          groups Str::Symbol, Text, Punctuation
         end
 
         # () [] {} are all permitted as like pairs

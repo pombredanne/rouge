@@ -1,8 +1,11 @@
+# -*- coding: utf-8 -*- #
+
 module Rouge
   module Lexers
-    Lexer.load_const :C, 'c.rb'
+    load_lexer 'c.rb'
 
     class Cpp < C
+      title "C++"
       desc "The C++ programming language"
 
       tag 'cpp'
@@ -11,7 +14,8 @@ module Rouge
       filenames '*.cpp', '*.hpp',
                 '*.c++', '*.h++',
                 '*.cc',  '*.hh',
-                '*.cxx', '*.hxx'
+                '*.cxx', '*.hxx',
+                '*.pde', '*.ino'
       mimetypes 'text/x-c++hdr', 'text/x-c++src'
 
       def self.keywords
@@ -37,8 +41,17 @@ module Rouge
         rule /(?:__offload|__blockingoffload|__outer)\b/, Keyword::Pseudo
       end
 
+      # digits with optional inner quotes
+      # see www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3781.pdf
+      dq = /\d('?\d)*/
+
       prepend :statements do
         rule /class\b/, Keyword, :classname
+        rule %r((#{dq}[.]#{dq}?|[.]#{dq})(e[+-]?#{dq}[lu]*)?)i, Num::Float
+        rule %r(#{dq}e[+-]?#{dq}[lu]*)i, Num::Float
+        rule /0x\h('?\h)*[lu]*/i, Num::Hex
+        rule /0[0-7]('?[0-7])*[lu]*/i, Num::Oct
+        rule /#{dq}[lu]*/i, Num::Integer
       end
 
       state :classname do
